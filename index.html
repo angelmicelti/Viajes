@@ -1247,16 +1247,20 @@ function saveEditModal() {
     };
 
     if (type === 'tripInfo') {
+        const t = getActiveTrip();
+        const newStart = getVal('tripStartDate');
+        const newEnd = getVal('tripEndDate');
+        if (newStart && newEnd && newEnd < newStart) {
+            showToast('⚠ La fecha de fin no puede ser anterior a la de inicio', 3000);
+            return;
+        }
         S.config.title = getVal('title') || S.config.title;
         S.config.description = getVal('description');
         syncItinerary();
         S.config.mapUrl = getVal('mapUrl');
         // Actualizar fechas del viaje (en el objeto trip, no en data).
         // El subtítulo (mes/año) se deriva automáticamente de estas fechas.
-        const t = getActiveTrip();
         if (t) {
-            const newStart = getVal('tripStartDate');
-            const newEnd = getVal('tripEndDate');
             if (newStart !== (t.startDate || '') || newEnd !== (t.endDate || '')) {
                 t.startDate = newStart;
                 t.endDate = newEnd;
@@ -1730,10 +1734,16 @@ function getWeatherIcon(condition) {
 }
 
 async function fetchWeather() {
-    const uniqueLocs = [...new Set(S.travelPlan.map(i => i.location))].filter(Boolean);
+    // La carga puede tardar varios segundos. Mantén el resultado ligado al
+    // viaje que la inició para que no aparezca en otro viaje tras cambiarlo.
+    const tripData = S;
+    const tripId = App.activeTripId;
+    const plan = tripData.travelPlan.slice();
+    const locations = { ...tripData.locations };
+    const uniqueLocs = [...new Set(plan.map(i => i.location))].filter(Boolean);
     const cache = {};
     for (const loc of uniqueLocs) {
-        const coord = S.locations[loc];
+        const coord = locations[loc];
         if (!coord) continue;
         try {
             const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coord.lat}&longitude=${coord.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=Europe%2FMadrid&forecast_days=16`);
@@ -1741,7 +1751,8 @@ async function fetchWeather() {
             await new Promise(r2 => setTimeout(r2, 300));
         } catch(e) { console.error(e); }
     }
-    forecastData = S.travelPlan.map(item => {
+    if (S !== tripData || App.activeTripId !== tripId) return;
+    forecastData = plan.map(item => {
         const data = cache[item.location];
         if (!data) return { location: item.location, date: item.date, min: '--', max: '--', pop: 0, wind: '--', condition: 'Sin datos' };
         const idx = data.time.indexOf(item.date);
@@ -1901,15 +1912,18 @@ async function addCustomRoute() {
     const from = fromSel.value, to = toSel.value;
     if (!from || !to) { showToast('Elige origen y destino', 2000); return; }
     if (from === to) { showToast('Origen y destino deben ser distintos', 2000); return; }
-    const c1 = S.locations[from], c2 = S.locations[to];
+    const tripData = S;
+    const tripId = App.activeTripId;
+    const c1 = tripData.locations[from], c2 = tripData.locations[to];
     if (!c1 || !c2) { showToast('Faltan coordenadas de alguna ciudad', 2500); return; }
     // Optimismo: inserta la entrada con placeholder mientras se calcula
     const entry = { id: 'cr-' + uid(), from, to, distance: '…', duration: '…' };
-    S.config.customRoutes.push(entry);
+    tripData.config.customRoutes.push(entry);
     saveToFirebase();
     renderView();
     // Cálculo real
     const leg = await fetchRouteLeg(c1, c2);
+    if (S !== tripData || App.activeTripId !== tripId || !tripData.config.customRoutes.includes(entry)) return;
     entry.distance = leg.distance;
     entry.duration = leg.duration;
     saveToFirebase();
