@@ -347,7 +347,7 @@
                 <div class="flex-shrink-0 flex items-center cursor-pointer gap-2" onclick="switchTab('home')" title="Ir a Inicio">
                     <svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
                     <span id="nav-appname" class="font-bold text-white text-base sm:text-lg tracking-tight hidden sm:block">Mi Viaje</span>
-                    <button id="app-version" type="button" title="Versión de la app" class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/40 hover:bg-blue-600/40 hover:text-blue-200 transition-colors print:hidden">v1.31.4</button>
+                    <button id="app-version" type="button" title="Versión de la app" class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/40 hover:bg-blue-600/40 hover:text-blue-200 transition-colors print:hidden">v1.33.1</button>
                 </div>
 
                 <!-- Divisor (escritorio) -->
@@ -563,7 +563,7 @@
                 </div>
             </div>
             <button onclick="openUserForm(null)" class="btn-add mt-4" style="min-height:70px" title="Añadir usuario">
-                <span class="inline-flex items-center gap-2 text-sm font-medium" style="padding:0">${ICO.plus} Añadir usuario</span>
+                <span class="inline-flex items-center gap-2 text-sm font-medium" style="padding:0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> Añadir usuario</span>
             </button>
         </div>
     </div>
@@ -829,6 +829,10 @@ function normalizeTripData(data) {
     if (!d.locations) d.locations = {};
     if (!d.config) d.config = {};
     d.config.tabs = arrFrom(d.config.tabs);
+    // Red de seguridad: si el array de pestañas llegó vacío (Firebase descarta
+    // arrays vacíos en escrituras antiguas), restaurar las pestañas por defecto
+    // en lugar de quedarse sin navegación.
+    if (!d.config.tabs.length) d.config.tabs = JSON.parse(JSON.stringify(DEFAULTS.config.tabs));
     // Migración: asegurar que existe la pestaña 'Mis viajes' (trips)
     // en viajes creados antes de que se añadiese esta pestaña.
     if (!d.config.tabs.some(t => t.id === 'trips')) {
@@ -970,7 +974,7 @@ function makeEditable(el, path, multiline) {
         const tag = multiline ? 'textarea' : 'input';
         const input = document.createElement(tag);
         input.className = 'edit-input';
-        input.value = oldVal;
+        input.value = (oldVal == null ? '' : oldVal);
         if (el.tagName === 'H1' || el.closest('h1')) input.style.fontSize = '0.65em';
         el.replaceWith(input);
         input.focus();
@@ -982,6 +986,9 @@ function makeEditable(el, path, multiline) {
             saveToFirebase();
             const span = document.createElement(el.tagName || 'span');
             span.setAttribute('data-editable', path);
+            // Conservar la marca multilínea: sin esto, la siguiente edición del
+            // mismo campo abriría un input de una línea en vez de un textarea.
+            if (el.hasAttribute && el.hasAttribute('data-multiline')) span.setAttribute('data-multiline', '');
             span.textContent = newVal;
             if (el.className) span.className = el.className;
             input.replaceWith(span);
@@ -1221,6 +1228,7 @@ function renderEditForm(type, idx) {
                     <button type="button" onclick="enrichAccommodationFromForm()" class="btn-icon bg-blue-600/80 hover:bg-blue-500 text-white flex-shrink-0" title="Buscar información en Internet">${ICO.search}</button>
                 </div>
                 <p id="accom-search-status" class="text-xs text-blue-300 mt-1.5 hidden"></p>
+            </div>
             <div class="grid grid-cols-2 gap-4">
                 <div><label class="block text-sm text-slate-300 mb-1 font-medium">Tipo</label>
                     <input class="edit-input" data-field="type" value="${esc(h.type)}" placeholder="Hotel, Apartamento, Posada Rural..."></div>
@@ -1561,10 +1569,10 @@ function viewHome() {
 
     const locRows = Object.entries(S.locations).map(([city, coord]) => `
         <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3 fade-in">
-            <input class="edit-input !w-auto sm:w-36" value="${esc(city)}" onchange="renameLocation('${city.replace(/'/g,"\\'")}', this.value)">
-            <div class="flex flex-wrap items-center gap-2 text-sm"><span class="text-slate-400">Lat:</span><input type="number" step="0.0001" class="edit-input !w-24" value="${coord.lat}" onchange="S.locations['${city.replace(/'/g,"\\'")}'].lat=parseFloat(this.value)||0; saveToFirebase(); scheduleRouteFetch()"><span class="text-slate-400">Lon:</span><input type="number" step="0.0001" class="edit-input !w-24" value="${coord.lon}" onchange="S.locations['${city.replace(/'/g,"\\'")}'].lon=parseFloat(this.value)||0; saveToFirebase(); scheduleRouteFetch()"></div>
-            <button class="btn-icon btn-edit" onclick="openEditModal('location', '${city.replace(/'/g,"\\'")}')" title="Editar localidad">${ICO.edit}</button>
-            <button class="btn-icon btn-delete" onclick="locationDelete('${city.replace(/'/g,"\\'")}')" title="Quitar localidad">${ICO.trash}</button>
+            <input class="edit-input !w-auto sm:w-36" value="${esc(city)}" onchange="renameLocation('${escJs(city)}', this.value)">
+            <div class="flex flex-wrap items-center gap-2 text-sm"><span class="text-slate-400">Lat:</span><input type="number" step="0.0001" class="edit-input !w-24" value="${coord.lat}" onchange="S.locations['${escJs(city)}'].lat=parseFloat(this.value)||0; saveToFirebase(); scheduleRouteFetch()"><span class="text-slate-400">Lon:</span><input type="number" step="0.0001" class="edit-input !w-24" value="${coord.lon}" onchange="S.locations['${escJs(city)}'].lon=parseFloat(this.value)||0; saveToFirebase(); scheduleRouteFetch()"></div>
+            <button class="btn-icon btn-edit" onclick="openEditModal('location', '${escJs(city)}')" title="Editar localidad">${ICO.edit}</button>
+            <button class="btn-icon btn-delete" onclick="locationDelete('${escJs(city)}')" title="Quitar localidad">${ICO.trash}</button>
         </div>`).join('');
 
     const tabVis = S.config.tabs.map((tab, i) => `
@@ -1778,7 +1786,7 @@ function viewWeather() {
     if (S.travelPlan.length === 0) return '<div class="text-center py-10"><p class="text-slate-400">Añade días a tu plan de viaje (modo edición) para ver la previsión.</p></div>';
     if (forecastData.length === 0) return '<div class="text-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4"></div><p class="text-slate-400">Descargando previsión...</p></div>';
     const rows = forecastData.map((d, i) => {
-        const fmt = new Date(d.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+        const fmt = new Date(d.date + 'T00:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
         return `<tr class="hover:bg-white/10 transition duration-200 cursor-pointer fade-in" style="animation-delay:${i*0.03}s" onclick="openModal(${i})">
             <td class="py-4 px-4 sm:px-6 whitespace-nowrap text-slate-300">${fmt}</td>
             <td class="py-4 px-4 sm:px-6 font-semibold text-white">${esc(d.location) || '—'}</td>
@@ -1794,7 +1802,7 @@ function viewWeather() {
 function openModal(i) {
     const d = forecastData[i]; if (!d) return;
     document.getElementById('modal-location').innerText = d.location;
-    document.getElementById('modal-date').innerText = new Date(d.date).toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('modal-date').innerText = new Date(d.date + 'T00:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
     document.getElementById('modal-pop').innerText = d.pop + '%';
     document.getElementById('modal-wind').innerText = d.wind;
     document.getElementById('modal-desc').innerText = `Jornada en ${d.location} caracterizada por estado ${d.condition.toLowerCase()}. Temperaturas entre ${d.min}ºC y ${d.max}ºC.`;
@@ -1852,32 +1860,39 @@ async function fetchRouteLeg(c1, c2) {
 async function fetchRoutes() {
     // Una sola ejecución a la vez (pestaña Rutas y exportar PDF pueden pedirla a la vez)
     if (routesInFlight) return routesInFlight;
+    // Igual que en fetchWeather: liga el cálculo al viaje que lo inició para
+    // no mezclar datos si el usuario cambia de viaje mientras se calcula.
+    const tripData = S;
+    const tripId = App.activeTripId;
     routesInFlight = (async () => {
         // Etapas derivadas del plan (con salida y regreso a la ciudad de origen)
         const stops = planStops();
         // Auto-reparación: ciudades sin coordenadas o con las de respaldo (geocodificación fallida)
         let coordsRepaired = false;
         for (const loc of new Set(stops)) {
-            const c = S.locations[loc];
+            const c = tripData.locations[loc];
             if (!c || isPlaceholderCoord(c)) {
                 const g = await geocodeCity(loc);
-                if (g) { S.locations[loc] = g; coordsRepaired = true; }
+                if (S !== tripData || App.activeTripId !== tripId) return; // el viaje activo cambió: abortar
+                if (g) { tripData.locations[loc] = g; coordsRepaired = true; }
             }
         }
+        if (S !== tripData || App.activeTripId !== tripId) return;
         if (coordsRepaired) {
             weatherFetched = false;
             saveToFirebase();
         }
         routeLegs = [];
         for (let i = 0; i < stops.length - 1; i++) {
-            const c1 = S.locations[stops[i]], c2 = S.locations[stops[i+1]];
+            if (S !== tripData || App.activeTripId !== tripId) return; // no contaminar el viaje nuevo
+            const c1 = tripData.locations[stops[i]], c2 = tripData.locations[stops[i+1]];
             const leg = await fetchRouteLeg(c1, c2);
             routeLegs.push({ from: stops[i], to: stops[i+1], distance: leg.distance, duration: leg.duration });
         }
         // Recalcular también las rutas personalizadas cuyas ciudades sigan existiendo
         let customChanged = false;
-        for (const cr of (S.config.customRoutes || [])) {
-            const c1 = S.locations[cr.from], c2 = S.locations[cr.to];
+        for (const cr of (tripData.config.customRoutes || [])) {
+            const c1 = tripData.locations[cr.from], c2 = tripData.locations[cr.to];
             if (!c1 || !c2) { cr.distance = '-- km'; cr.duration = '--'; customChanged = true; continue; }
             // Solo recalcular si está vacío o si las coordenadas cambiaron
             const leg = await fetchRouteLeg(c1, c2);
@@ -1885,6 +1900,7 @@ async function fetchRoutes() {
                 cr.distance = leg.distance; cr.duration = leg.duration; customChanged = true;
             }
         }
+        if (S !== tripData || App.activeTripId !== tripId) return;
         if (customChanged) saveToFirebase();
         if (activeTab === 'routes') renderView();
     })();
@@ -2067,7 +2083,7 @@ function saveMapUrl(v) {
 function viewMap() {
     if (!S.config.mapRadii || typeof S.config.mapRadii !== 'object') S.config.mapRadii = {};
     const radii = S.config.mapRadii;
-    const jsEsc = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const jsEsc = escJs;   // escapa texto para atributos onclick (backslash y comillas)
     const cities = [...new Set(S.travelPlan.map(d => d.location).filter(Boolean))];
     const cards = cities.map(city => {
         const c = S.locations[city];
@@ -2469,6 +2485,16 @@ function esc(s) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Escapa un texto para incrustarlo dentro de un atributo onclick="...": protege
+// el backslash y las comillas simples de la cadena JS y las comillas dobles que
+// delimitan el propio atributo HTML (si no, un nombre con comillas rompe la fila).
+function escJs(s) {
+    return String(s == null ? '' : s)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '&quot;');
+}
+
 function fmtLong(dt) {
     return new Date(dt + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 }
@@ -2768,7 +2794,7 @@ function closeUsersModal() {
 function renderUsersList() {
     const el = document.getElementById('users-list');
     const me = currentUser();
-    const jsEsc = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const jsEsc = escJs;   // escapa texto para atributos onclick (backslash y comillas)
     const list = Object.values(USERS).filter(u => u && typeof u === 'object')
         .sort((a, b) => (a.role === b.role ? a.name.localeCompare(b.name) : (a.role === 'admin' ? -1 : 1)));
     el.innerHTML = list.map(u => `
@@ -2818,7 +2844,8 @@ async function saveUser() {
         if (p1.length < 4) { fail('La contraseña debe tener al menos 4 caracteres.'); return; }
     }
     if (!userEditing && !p1) { fail('Escribe una contraseña para el nuevo usuario.'); return; }
-    if (!userEditing && USERS[newName]) { fail('Ya existe un usuario con ese nombre.'); return; }
+    // El nombre no puede colisionar con otro usuario ya existente (ni al crear ni al renombrar)
+    if (userEditing !== newName && USERS[newName]) { fail('Ya existe un usuario con ese nombre.'); return; }
 
     const old = userEditing ? USERS[userEditing] : null;
     const entry = { name: newName, role: role, salt: old ? old.salt : uid() + uid(), hash: old ? old.hash : '' };
@@ -2921,7 +2948,7 @@ setTimeout(tryStart, 4000);
 // Service Worker (PWA): instala la app, habilita offline y expone la versión.
 // Versión embebida en el HTML (fallback inmediato si el SW no responde).
 // Se sincroniza con APP_VERSION de sw.js al desplegar.
-const EMBEDDED_VERSION = '1.31.4';
+const EMBEDDED_VERSION = '1.33.1';
 
 // Versión actual mostrada en el chip (para restaurarla tras re-renders).
 let _currentVersion = null;
