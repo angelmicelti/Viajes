@@ -223,11 +223,6 @@
         @media (min-width: 640px) { .map-h { height: 80vh; height: 80dvh; } }
         /* Paneles desplegables de configuración (Inicio) */
         .home-panel { border: 1px solid rgba(255,255,255,0.10); border-radius: 1rem; background: rgba(255,255,255,0.03); margin-top: 1.5rem; padding: 0.25rem 1rem; }
-        .home-panel summary { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; cursor: pointer; padding: 0.8rem 0.25rem; list-style: none; }
-        .home-panel summary::-webkit-details-marker { display: none; }
-        .home-panel summary .chev { color: #94a3b8; transition: transform 0.2s; flex-shrink: 0; }
-        .home-panel[open] summary .chev { transform: rotate(180deg); }
-        .home-panel[open] { padding-bottom: 1rem; }
         html.light-mode .home-panel { background: rgba(255,255,255,0.65); border-color: rgba(15,23,42,0.10); }
         /* Acordeones de la home (tarjetas + paneles) */
         .home-acc-header { outline: none; }
@@ -351,7 +346,7 @@
                 <div class="flex-shrink-0 flex items-center cursor-pointer gap-2" onclick="switchTab('home')" title="Ir a Inicio">
                     <svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
                     <span id="nav-appname" class="font-bold text-white text-base sm:text-lg tracking-tight hidden sm:block">Mi Viaje</span>
-                    <button id="app-version" type="button" title="Versión de la app" class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/40 hover:bg-blue-600/40 hover:text-blue-200 transition-colors print:hidden">v1.33.2</button>
+                    <button id="app-version" type="button" title="Versión de la app" class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/40 hover:bg-blue-600/40 hover:text-blue-200 transition-colors print:hidden">v1.33.3</button>
                 </div>
 
                 <!-- Divisor (escritorio) -->
@@ -419,7 +414,7 @@
     <!-- ============ WEATHER MODAL ============ -->
     <div id="info-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
-        <div class="relative bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl w-full max-w-md max-h-[86dvh] overflow-y-auto p-6 md:p-8" id="modal-content">
+        <div class="relative bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl w-full max-w-md max-h-[86dvh] overflow-y-auto p-6 md:p-8">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -455,8 +450,6 @@
     <!-- ============ EXPORT PDF (A4) ============ -->
     <div id="print-root"></div>
     <div id="app-toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white px-4 py-2 rounded-xl shadow-2xl text-sm font-medium hidden"></div>
-    <!-- Chip de versión: ahora va dentro del navbar -->
-
     <!-- ============ NEW TRIP MODAL ============ -->
     <div id="newtrip-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeNewTripModal()"></div>
@@ -680,8 +673,6 @@ const ICO = {
     trash: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>',
     chev: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>',
     edit: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>',
-    save: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>',
-    close: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>',
     search: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>',
     web: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>',
     list: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>',
@@ -1710,7 +1701,6 @@ function viewHome() {
 }
 /* ---------- TRIPS (Listado de viajes) ---------- */
 function viewTrips() {
-    const fmt = dt => dt ? new Date(dt + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
     const fmtShort = dt => dt ? new Date(dt + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '';
     const today = isoLocal(new Date());
     const rows = App.trips.slice().sort((a, b) => (b.startDate || '').localeCompare(a.startDate || '')).map(t => {
@@ -2821,11 +2811,6 @@ function logout() {
 
 function renderUserChip() {
     const u = currentUser();
-    const chip = document.getElementById('user-chip');
-    if (chip) {
-        chip.textContent = u ? `${u.name} · ${u.role === 'admin' ? 'admin' : 'solo lectura'}` : '';
-        chip.classList.toggle('hidden', !u);
-    }
     const bu = document.getElementById('btn-users');
     if (bu) bu.classList.toggle('hidden', !(u && u.role === 'admin'));
     const be = document.getElementById('btn-edit-trip');
@@ -3005,7 +2990,7 @@ setTimeout(tryStart, 4000);
 // Service Worker (PWA): instala la app, habilita offline y expone la versión.
 // Versión embebida en el HTML (fallback inmediato si el SW no responde).
 // Se sincroniza con APP_VERSION de sw.js al desplegar.
-const EMBEDDED_VERSION = '1.33.2';
+const EMBEDDED_VERSION = '1.33.3';
 
 // Versión actual mostrada en el chip (para restaurarla tras re-renders).
 let _currentVersion = null;
