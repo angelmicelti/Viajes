@@ -287,6 +287,10 @@
         body.trip-locked [data-editable]:hover { outline: none; background: transparent; }
         /* Banda de aviso superior cuando el viaje está bloqueado */
         #trip-locked-banner { background: linear-gradient(90deg, rgba(245,158,11,0.18), rgba(245,158,11,0.08)); border-bottom: 1px solid rgba(245,158,11,0.4); color: #fbbf24; }
+        /* El botón de ayuda es informativo: debe seguir pulsable aunque el
+           usuario sea de solo lectura o el viaje esté bloqueado. */
+        body.role-user #main-content button.btn-help,
+        body.trip-locked #main-content button.btn-help { pointer-events: auto; }
         /* ==================================================================
            PANTALLA DE LOGIN — contraste garantizado en día y noche
            ================================================================== */
@@ -347,7 +351,7 @@
                 <div class="flex-shrink-0 flex items-center cursor-pointer gap-2" onclick="switchTab('home')" title="Ir a Inicio">
                     <svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
                     <span id="nav-appname" class="font-bold text-white text-base sm:text-lg tracking-tight hidden sm:block">Mi Viaje</span>
-                    <button id="app-version" type="button" title="Versión de la app" class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/40 hover:bg-blue-600/40 hover:text-blue-200 transition-colors print:hidden">v1.33.1</button>
+                    <button id="app-version" type="button" title="Versión de la app" class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-semibold bg-blue-600/20 text-blue-300 border border-blue-500/40 hover:bg-blue-600/40 hover:text-blue-200 transition-colors print:hidden">v1.33.2</button>
                 </div>
 
                 <!-- Divisor (escritorio) -->
@@ -681,6 +685,7 @@ const ICO = {
     search: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>',
     web: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>',
     list: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>',
+    help: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
     lock: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>',
     unlock: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V5a4 4 0 014-4"/></svg>',
 };
@@ -1508,6 +1513,18 @@ function toggleHomeAccordion(id) {
     }
 }
 
+// Botón «¿Cómo funciona la app?» de la home: abre el panel de ayuda y
+// desplaza la vista hasta él para que se vea sin tener que buscarlo.
+function toggleHelpPanel() {
+    const opening = homeAccordionOpen !== 'acc-help';
+    toggleHomeAccordion('acc-help');
+    if (opening) {
+        const body = document.querySelector('[data-acc-body="acc-help"]');
+        const panel = body && body.closest('.home-panel');
+        if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
 // Tras un re-render (p. ej. al editar un día del plan), reabrir el
 // acordeón que estaba abierto para no perder el contexto de edición.
 function restoreHomeAccordion() {
@@ -1627,6 +1644,41 @@ function viewHome() {
                 </div>
             </div>
         </div>
+    </div>
+    <div class="home-panel border border-white/10 rounded-2xl bg-white/5 overflow-hidden">
+        <button type="button" data-acc-header="acc-help" onclick="toggleHomeAccordion('acc-help')" class="home-acc-header w-full flex items-center justify-between p-5 text-left transition-colors hover:bg-white/5">
+            <span class="text-xl font-bold text-white">¿Cómo funciona la app?</span>
+            <span class="home-acc-chev text-slate-400">${ICO.chev}</span>
+        </button>
+        <div data-acc-body="acc-help" class="home-acc-body hidden px-5 pb-5">
+            <div class="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p class="font-semibold text-white mb-1 flex items-center gap-2"><span class="text-blue-400">${ICO.edit}</span> Editar</p>
+                    <p class="text-slate-400">Pulsa sobre cualquier texto (se resalta al pasar el ratón) o en el lápiz. Los cambios se guardan solos.</p>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p class="font-semibold text-white mb-1 flex items-center gap-2"><span class="text-blue-400">${ICO.lock}</span> Roles</p>
+                    <p class="text-slate-400">El administrador edita todo; el usuario de solo lectura puede consultar el viaje sin modificarlo.</p>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p class="font-semibold text-white mb-1 flex items-center gap-2"><span class="text-cyan-400">${ICO.cloud}</span> Clima</p>
+                    <p class="text-slate-400">Previsión por ciudad y día en la pestaña Clima (hasta 16 días). Toca una fila para ver el detalle.</p>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p class="font-semibold text-white mb-1 flex items-center gap-2"><span class="text-emerald-400">${ICO.map}</span> Rutas</p>
+                    <p class="text-slate-400">Se calculan solas desde las ciudades del plan, con salida y regreso a ${esc(HOME_CITY)}. Toca una tarjeta para abrirla en Google Maps.</p>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p class="font-semibold text-white mb-1 flex items-center gap-2"><span class="text-amber-400">${ICO.pin}</span> Reservas y hoteles</p>
+                    <p class="text-slate-400">El botón de la lupa rellena dirección, teléfono y web desde Internet; solo completa los campos vacíos.</p>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p class="font-semibold text-white mb-1 flex items-center gap-2"><span class="text-slate-300">${ICO.calendar}</span> Viajes y PDF</p>
+                    <p class="text-slate-400">Gestiona varios viajes en «Mis viajes»; los finalizados se bloquean (candado para desbloquear). La impresora del menú superior exporta el viaje a PDF.</p>
+                </div>
+            </div>
+            <p class="text-slate-500 text-xs mt-4 text-center">Consejo: en el móvil, usa «Añadir a pantalla de inicio» para abrir la app como una aplicación. Sin conexión podrás consultar lo ya cargado, pero guardar cambios necesita internet.</p>
+        </div>
     </div>`;
 
     return `<div class="fade-in">
@@ -1635,6 +1687,11 @@ function viewHome() {
             <p class="text-blue-300 text-xl font-medium">${esc(tripSubtitle())}</p>
             <p class="text-slate-400 mt-4 max-w-2xl mx-auto">${esc(S.config.description)}</p>
             <p class="text-slate-500 text-xs mt-3">Pulsa sobre una tarjeta o panel para desplegar su contenido. Solo puede haber uno abierto a la vez.</p>
+            <div class="mt-5 flex justify-center">
+                <button type="button" class="btn-help inline-flex items-center gap-2 text-sm font-medium text-blue-300 bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/40 px-4 py-2 rounded-xl transition-colors" onclick="toggleHelpPanel()" title="Ayuda rápida sobre la app">
+                    ${ICO.help}<span>¿Cómo funciona la app?</span>
+                </button>
+            </div>
         </header>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">${cardsHtml}</div>
         <div class="mt-8 space-y-4">
@@ -2948,7 +3005,7 @@ setTimeout(tryStart, 4000);
 // Service Worker (PWA): instala la app, habilita offline y expone la versión.
 // Versión embebida en el HTML (fallback inmediato si el SW no responde).
 // Se sincroniza con APP_VERSION de sw.js al desplegar.
-const EMBEDDED_VERSION = '1.33.1';
+const EMBEDDED_VERSION = '1.33.2';
 
 // Versión actual mostrada en el chip (para restaurarla tras re-renders).
 let _currentVersion = null;
